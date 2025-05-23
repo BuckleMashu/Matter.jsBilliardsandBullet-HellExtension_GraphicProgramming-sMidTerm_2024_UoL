@@ -4,6 +4,14 @@ This repository hosts a 2D physics-based game project developed using p5.js and 
 
 The project is structured across several JavaScript files: sketch.js (main logic), balls.js (ball creation and management), table.js (pool table and border setup), cuestick.js (cue stick mechanics), gamemechanic.js (game modes and potting logic), and creative.js (the bullet-hell extension).
 
+You can view the demo for this app here:https://www.youtube.com/watch?v=7Mr2UlnpQ5k
+
+![image](https://github.com/user-attachments/assets/769e95ab-6ce3-4963-949f-fb0369caecd2)
+
+![image](https://github.com/user-attachments/assets/66aa66b8-adbd-4e08-a887-720a6f6bc8bf)
+
+![image](https://github.com/user-attachments/assets/2767da1d-6bd2-471c-844a-eb67df50381c)
+
 Core Billiards Game Features:
 
     Physics-Based Gameplay: Utilizes Matter.js for realistic ball collisions, friction, and restitution.
