@@ -1,0 +1,1307 @@
+
+ -------------------- balls.js ------------------------ 
+
+var boxes;
+
+var colouredBalls;
+var colouredBallsDefault=[];
+
+var whiteBall = [];
+
+var ogsize;
+var size;
+
+function setupTower(boxesRandom,colouredBallsRandom){
+    var startX;
+    var startY
+    var randoPos;
+    boxes = [];
+    colouredBalls=[];
+    colouredBallsDefault=[[(windowWidth/2)-(globalWidth/2),(windowHeight/2)+((globalWidth/4)*0.6),'yellow'],[(windowWidth/2)-(globalWidth/2),(windowHeight/2)-((globalWidth/4)*0.6),'darkgreen'],
+                          [(windowWidth/2)-(globalWidth/2),(windowHeight/2),'chocolate'],[(windowWidth/2),(windowHeight/2),'blue'],
+                          [(windowWidth/2)+(globalWidth/2)-ogsize,(windowHeight/2),'pink'],[(windowWidth/2)+(globalWidth/4*3),(windowHeight/2),'black']];
+
+    if (boxesRandom != false){
+        for (var i =0; i<15;i++){
+            randoPos = ballPosRandomiser();
+            startX = randoPos.x;
+            startY = randoPos.y;
+            generateBall(startX,startY,size,boxes,'red','red');
+        }
+    }else{
+        for (var row=1; row<=6;row++){
+            startX = windowWidth/2-(1.80*ogsize)+(globalWidth/2);
+            startY = windowHeight/2+ogsize;
+            if (row > 1) {
+                startY = startY-(ogsize*(row/2));
+                startX = startX+(ogsize*(row*0.90));
+            }
+        
+            for (var i = 1;i<row;i++){
+                generateBall(startX,startY,size,boxes,'red','red');
+                startY = startY+ogsize;
+            }
+        }
+    }
+  
+    for (var i = 0;i<colouredBallsDefault.length;i++){
+      if (colouredBallsRandom == false){
+        startX = colouredBallsDefault[i][0];
+        startY = colouredBallsDefault[i][1];
+        var colorOfBall = colouredBallsDefault[i][2];
+      }else{
+        randoPos = ballPosRandomiser();
+        startX = randoPos.x;
+        startY = randoPos.y;
+        var colorOfBall = colouredBallsDefault[i][2];
+      }
+      
+      generateBall(startX,startY,size,colouredBalls,colorOfBall,'colour')
+    }    
+}
+  
+function drawTower(){
+    push();
+      for (var i = 0; i<boxes.length;i++){
+        drawBall(boxes[i]);
+      }
+  
+      for (var i = 0;i<colouredBalls.length;i++){
+        drawBall(colouredBalls[i]);
+      }
+    pop();
+    ballNearHole(boxes);
+    ballNearHole(colouredBalls);
+  }
+////////////////////////////////////////////////////////////////////////////////////////
+  function ballPosRandomiser(){
+    var Posx = random((windowWidth/2)-globalWidth,(windowWidth/2)+globalWidth);
+    var Posy = random((windowHeight/2)-(globalWidth/2),(windowHeight/2)+(globalWidth/2));
+    var pos = {x: Posx,y: Posy};
+    return pos;
+  }
+/////////////////////////////////////////////////////////////
+function setupWhiteBall(x1,x2,y1,y2,ballStatus){  
+    var mX = constrain(mouseX,x1,x2);
+    var mY = constrain(mouseY,y1,y2);
+  
+
+    if (ballStatus == "play"){
+      let d = dist(mouseX, mouseY, (windowWidth/2)-(globalWidth/2),windowHeight/2);
+      if (d > (globalWidth/2)*0.3) {
+        // Calculate angle and set the ball inside the play area semi-circle
+        let angle = atan2(mouseY - windowHeight/2, mouseX - ((windowWidth/2)-(globalWidth/2)));
+        let constrainedX = ((windowWidth/2)-(globalWidth/2)) + cos(angle) * ((globalWidth/2)*0.3);
+        let constrainedY = windowHeight/2 + sin(angle) * ((globalWidth/2)*0.3);
+        if (constrainedX < (windowWidth/2)-(globalWidth/2)){
+          mX = constrainedX;
+          mY = constrainedY;
+        }
+      } 
+    }
+
+    push();
+    fill(255);
+    ellipse(mX,mY,ogsize);
+    stroke(0);
+    strokeWeight(4);
+    textSize(globalWidth*0.05);
+    text('Place the cue ball in the starting area to start playing',windowWidth/2-(globalWidth/2),windowHeight/5);
+    pop();
+}
+  
+  function setupEngineWhiteBall(x1,x2,y1,y2, ballStatus){
+    var startX = constrain(mouseX,x1,x2);
+    var startY = constrain(mouseY,y1,y2);
+    if (ballStatus == "play"){
+      let d = dist(mouseX, mouseY, (windowWidth/2)-(globalWidth/2),windowHeight/2);
+      if (d > (globalWidth/2)*0.3) {
+        // Calculate angle and set the ball inside the play area semi-circle
+        let angle = atan2(mouseY - windowHeight/2, mouseX - ((windowWidth/2)-(globalWidth/2)));
+        let constrainedX = ((windowWidth/2)-(globalWidth/2)) + cos(angle) * ((globalWidth/2)*0.3);
+        let constrainedY = windowHeight/2 + sin(angle) * ((globalWidth/2)*0.3);
+        if (constrainedX < (windowWidth/2)-(globalWidth/2)){
+          startX = constrainedX;
+          startY = constrainedY;
+        }
+      } 
+    }
+    generateBall(startX,startY,size,whiteBall,'white','cue');
+  }
+  
+  function masterFunctionsetupWhiteBall(){
+    if (mouseNotPressedForCue == true){
+      if (ballOut.balltype == "cue"){
+        setupWhiteBall(windowWidth/2 - globalWidth,windowWidth/2 + globalWidth,
+        windowHeight/2 - (globalWidth/2),windowHeight/2 + (globalWidth/2),"out");
+      }else{
+        setupWhiteBall((windowWidth/2)-(globalWidth/2)-((globalWidth/2)*0.3),(windowWidth/2)-(globalWidth/2),
+        (windowHeight/2)-((globalWidth/2)*0.3),(windowHeight/2)+((globalWidth/2)*0.3),"play");
+      }
+    };
+  
+    if(mouseNotPressedForCue == false){
+      drawWhiteBall();
+      iterateForCollision(whiteBall,boxes);
+      iterateForCollision(whiteBall,colouredBalls);
+      iterateForCollision(whiteBall,borders);
+      if(isOffScreen(whiteBall[0]) && whiteBall.length == 1){
+        removeFromWorld(whiteBall[0]);
+        whiteBall.splice(0,1);
+        mouseNotPressedForCue = true;
+      }
+    };
+  }
+  
+  function drawWhiteBall(){
+    push();
+    if (mouseNotPressedForCue == false && whiteBall.length !=0){
+      drawBall(whiteBall[0])
+    }
+    pop();
+    ballNearHole(whiteBall);
+  }
+  
+  function mouseReleased(){
+    if (mouseNotPressedForCue == false && gameModeChosen == true && whiteBall.length == 1){
+        setTimeout(() => {
+            var dynamicDamp = 25000/globalWidth;
+            var moverX = (mousePressedXCoord - mouseX)/(globalWidth*dynamicDamp);
+            var moverY = (mousePressedYCoord - mouseY)/(globalWidth*dynamicDamp);
+      
+            var mover = createVector(moverX,moverY);
+            Body.applyForce(whiteBall[0],{x:whiteBall[0].position.x, y:whiteBall[0].position.y},mover.limit(0.016));
+          }, 90);
+    }
+  }
+
+/////////////////////////////////////////////////////////////
+  function generateBall(x,y,size,boxes,colourV,typeV){
+    var box = Bodies.polygon(x, y,50,size,{
+        restitution: 0.8,
+        friction: 0.11,
+        frictionAir:0.011,
+        colour: colourV,
+        typeOfBody: typeV,
+      });
+      World.add(engine.world,[box]);
+      boxes.push(box);
+  }
+
+  function drawBall(ball){
+    ball.angle = 0;
+    ball.angularSpeed = 0;
+    ball.angularVelocity = 0;
+    fill(ball.colour);
+    drawVertices(ball.vertices);
+  }
+ -------------------- creative.js ------------------------ 
+
+var megaManState;
+var megaManBody;
+var bossMegaMan;
+
+var gameLoreShown;
+var loreline;
+
+let battleMusic;
+let tigerImg;
+
+var bulletShot = [];
+class bullet{
+    constructor(){
+        this.x = megaManBody.position.x;
+        this.y = megaManBody.position.y - (globalWidth*0.045);
+        this.xToBoss = ((windowWidth/2) - megaManBody.position.x);
+        this.yToBoss = (((windowHeight/2)-(globalWidth/2)-(globalWidth*0.04)) - megaManBody.position.y);
+        this.speed = createVector(this.xToBoss,this.yToBoss);
+        this.radius = globalWidth*0.01;
+    }
+
+    generate(){
+        this.laser = Bodies.circle(this.x, this.y, this.radius, {
+            restitution: 0,
+            friction: 0,
+            typeOfBody:'bullet'
+        });
+        World.add(engine.world, [this.laser]);
+    }
+
+    draw(){
+        push();
+        fill(255);
+        drawVertices(this.laser.vertices);
+        pop();
+    }
+
+    move(){
+        push();
+            Body.applyForce(this.laser,{x:this.laser.position.x, y:this.laser.position.y},this.speed.limit(0.0008));
+        pop();
+    }
+
+    remove(){
+        setTimeout(() => {
+            World.remove(engine.world, this.laser);
+            bossMegaMan.healthPoints --;
+          }, 100);
+    }
+}
+
+bossAtks = [];
+class bossBulletAttack{
+    constructor(color){
+        this.x = bossMegaMan.position.x;
+        this.y = bossMegaMan.position.y + globalWidth*0.16;
+        this.xToPlayer = (megaManBody.position.x - (windowWidth/2));
+        this.yToPlayer = (megaManBody.position.y - ((windowHeight/2)-(globalWidth/2)+(globalWidth*0.04)));
+        this.speed = createVector(this.xToPlayer,this.yToPlayer);
+        this.radius = globalWidth*0.05;
+        this.count = 0;
+        this.color = color;
+    }
+
+    generate(){
+        this.laser = Bodies.circle(this.x, this.y, this.radius, {
+            restitution: 0,
+            friction: 0,
+            typeOfBody:'Bossbullet'
+        });
+        World.add(engine.world, [this.laser]);
+    }
+
+    draw(){
+        push();
+        fill(this.color);
+        drawVertices(this.laser.vertices);
+        pop();
+    }
+
+    move(){
+        push();
+            Body.applyForce(this.laser,{x:this.laser.position.x, y:this.laser.position.y},this.speed.limit(0.0095));
+        pop();
+    }
+
+    remove(){
+            World.remove(engine.world, this.laser);
+    }
+
+    upTime(){
+        this.count ++;
+    }
+
+}
+
+bossSAtks = [];
+class bossSwipeAttack{
+    constructor(x,y,color){
+        this.x = x;
+        this.y = y;
+        this.count = 0;
+        this.countWarning = 0;
+        this.generated = false;
+        this.color = color;
+    }
+
+    generate(){
+        this.swipe = Bodies.rectangle(this.x, this.y, globalWidth/3, globalWidth*0.08,{
+            isStatic: true ,restitution: 0, friction:0,typeOfBody:'bossSwipe'
+          });
+        World.add(engine.world, [this.swipe]);
+    }
+
+    draw(){
+        push();
+        fill(this.color);
+        drawVertices(this.swipe.vertices);
+        pop();
+    }
+
+    move(){
+        push(); 
+            Body.rotate(this.swipe, Math.PI/12);
+        pop();
+    }
+
+    remove(){
+        World.remove(engine.world, this.swipe);
+    }
+
+    warning(x,y){
+        push();
+            fill(255,150,150,30);
+            ellipse(x,y,250,250);
+        pop();
+    }
+
+    upTime(){
+        this.count ++;
+    }
+
+    upTimeWarning(){
+        this.countWarning ++;
+    }
+}
+
+bossWallSpikeAtks= [];
+class bossSpikeAttack{
+    constructor(dir,color){
+        if (dir == "left"){
+            this.x = windowWidth/2 - globalWidth;
+            this.y = windowHeight/2 - (globalWidth/2);
+            this.dir = 1;
+        }
+        if (dir == 'right'){
+            this.x = windowWidth/2 + globalWidth*0.75;
+            this.y = windowHeight/2 - (globalWidth/2); 
+            this.dir = -1;
+        }
+        this.countDuring = 0;
+        this.count= 0;
+        this.countWarning = 0;
+        this.generated = false;
+        this.color = color;
+    }
+
+    generate(){
+        if (this.dir == 1){
+            this.spike = Bodies.rectangle(this.x+ globalWidth/6 , this.y, globalWidth/3, globalWidth*2,{
+                isStatic: true ,restitution: 0, friction:0, typeOfBody:'bossSpike'
+            });
+        }else{
+            this.spike = Bodies.rectangle(this.x + globalWidth/12 , this.y, globalWidth/3, globalWidth*2,{
+                isStatic: true ,restitution: 0, friction:0, typeOfBody:'bossSpike'
+            });
+        }
+        World.add(engine.world, [this.spike]);
+    }
+
+    draw(){
+        push();
+            fill(this.color);
+            drawVertices(this.spike.vertices);
+        pop();
+    }
+
+    move(){
+        push(); 
+            this.spike.position.x += this.dir;
+        pop();
+    }
+
+    remove(){
+        World.remove(engine.world, this.spike);
+    }
+
+    warning(){
+        push();
+            fill(255,150,150,30);
+            if (this.dir == 1){
+                rect(this.x,this.y,globalWidth/3,globalWidth);
+            }else{
+                rect(this.x-globalWidth/12,this.y,globalWidth/3,globalWidth);
+            }
+            
+        pop();
+    }
+
+    upTime(){
+        this.count ++;
+    }
+
+    upTimeWarning(){
+        this.countWarning ++;
+    }
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function megaManDrawAll(){
+
+    if (gameLoreShown == false){
+        gameLore(loreline);
+    }else if (gameLoreShown == true){
+        MegaManMovement();
+        drawBorderMegaMan();
+        if (megaManBody.healthPoints > 0){
+            drawMegaMan();
+        }else{
+            gameOver();
+        }
+        if (random(0,30)< 1 && bossMegaMan.healthPoints > 0){
+            var colorForAttacks = random(['yellow','darkgreen','chocolate','blue','pink'])
+            var attackChosen = [1,2,3,4,5,6,7,8,9,10];
+            var attackToImplement = random(attackChosen);
+            if ( attackToImplement <= 6){
+                BosslaserShot = new bossBulletAttack(colorForAttacks);
+                BosslaserShot.generate();
+                bossAtks.push(BosslaserShot);
+            }
+            if (attackToImplement >6 && attackToImplement <10 ){
+                BossBarAttack = new bossSwipeAttack(megaManBody.position.x + random(-60,60),megaManBody.position.y + random(-60,60),colorForAttacks);
+                bossSAtks.push(BossBarAttack);
+            }
+            if (attackToImplement == 10){
+                var dir = random(['left','right']);
+                BossSpikeWall = new bossSpikeAttack(dir,colorForAttacks);
+                bossWallSpikeAtks.push(BossSpikeWall);
+            }
+    
+        };
+
+        if (bossMegaMan.healthPoints > 0){
+            drawBossMegaMan();
+        }else{
+            victorious();
+        }
+    
+        bossBulletAttackTotal();
+    
+        bossSpinningAttackTotal();
+    
+        bossWallAttackTotal();
+    
+        megaManBodyShootBullet();
+
+        howToPlay();
+        healthPointLeft();
+    }
+}
+
+function setupMegaManAll(){
+    engine.gravity.y = 1;
+    setupBorderMegaMan();
+    setupMegaManBody();
+    setupBossMegaMan();
+    gameLoreShown = false;
+    loreline = 11;
+
+    //source: https://pixabay.com
+    soundFormats("mp3");
+    song = loadSound('assets/verbundnetzhaushalt-beatus-epic-battle-176662.mp3');
+    song.setVolume(0.09);   
+}
+
+function setupBorderMegaMan(){
+    clearArray(colouredBallsDefault);
+    clearArray(whiteBall);
+    clearArray(borders);
+
+    generateBorder((windowWidth/2)-globalWidth-(globalWidth*0.04), (windowHeight/2), (globalWidth*0.08), globalWidth,'megaManWall');
+    generateBorder((windowWidth/2)+globalWidth+(globalWidth*0.04), (windowHeight/2), (globalWidth*0.08), globalWidth,'megaManWall');
+    generateBorder((windowWidth/2), (windowHeight/2)+(globalWidth/2)+(globalWidth*0.04), (globalWidth*2), (globalWidth*0.08),'megaManWall');
+  }
+
+function setupBossMegaMan(){
+    bossMegaMan = Bodies.circle(windowWidth/2,(windowHeight/2)-(globalWidth/2), globalWidth*0.08,{
+      isStatic: true, friction:0,typeOfBody:'boss',healthPoints:100
+    });
+    World.add(engine.world, [bossMegaMan]);
+}
+
+function setupMegaManBody(){
+    megaManBody = Bodies.circle((windowWidth/2), (windowHeight/2 + globalWidth/3), (globalWidth*0.04), {
+        restitution: 0,
+        friction: 0.05,
+        typeOfBody:'megaman',
+        healthPoints: 5
+    });
+    World.add(engine.world, [megaManBody]);
+}
+////////////////////////////////////////////
+function drawMegaMan(){
+    push();
+    fill('red');
+    drawVertices(megaManBody.vertices);
+    pop();
+}
+
+function drawBossMegaMan(){
+    push();
+    fill('white');
+    image(tigerImg,windowWidth/2-globalWidth/2.15,(windowHeight/2)-(globalWidth*0.65),400,300);
+    drawVertices(bossMegaMan.vertices);
+    stroke('black');
+    strokeWeight(4);
+    textSize(globalWidth*0.05);
+    text('Cue',windowWidth/2-globalWidth*0.05,(windowHeight/2)-(globalWidth/2));
+    pop();
+}
+
+  function drawBorderMegaMan(){
+      push();
+      fill(100);
+      for (var i =0;i<borders.length;i++){
+        drawVertices(borders[i].vertices);
+      }
+      pop();
+  }
+///////////////////////////////////////////
+  function MegaManMovement(){
+    if (keyIsDown(65)){
+        Body.applyForce(megaManBody,{x:megaManBody.position.x, y:megaManBody.position.y},{x:-0.004, y:0});
+      };
+      if (keyIsDown(68)){
+        Body.applyForce(megaManBody,{x:megaManBody.position.x, y:megaManBody.position.y},{x:0.004, y:0});
+      };
+  }
+
+  function keyPressed(){
+    if (keyCode == 87 && megaManState == true && 
+        megaManBody.position.y >= (windowHeight/2)+(globalWidth/2)-(globalWidth*0.082)){
+        Body.applyForce(megaManBody,{x:megaManBody.position.x, y:megaManBody.position.y},{x:0, y:-0.12});
+    };
+
+    if (keyCode == 32 && megaManBody.healthPoints > 0 && gameLoreShown == true){
+        laserShot = new bullet();
+        laserShot.generate();
+        bulletShot.push(laserShot);
+    }
+
+    if (keyCode == 32 && gameLoreShown == false && loreline == 1){
+        gameLoreShown = true;
+        song.play();
+    }else if(keyCode == 32 && gameLoreShown == false && loreline > 1){
+        loreline --;
+    }
+  }
+///////////////////////////////////////////////////////////////////////////
+function bossBulletAttackTotal(){
+    if (bossAtks.length != 0 ){
+        for (var i =0; i<bossAtks.length;i++){
+            var attacksRemoved = false;
+            bossAtks[i].draw();
+            bossAtks[i].move();
+            for (var o = 0; o<borders.length;o++){
+                if (attacksRemoved == false && collisionDection(borders[o],bossAtks[i].laser)){
+                    bossAtks[i].upTime();
+                    if (bossAtks[i].count > 9){
+                        bossAtks[i].remove();
+                        bossAtks.splice(i,1);
+                        attacksRemoved = true;
+                    }
+                }
+            }
+            if (attacksRemoved == false && collisionDection(megaManBody,bossAtks[i].laser)){
+                bossAtks[i].remove();
+                megaManBody.healthPoints --;
+                bossAtks.splice(i,1);
+                attacksRemoved = true;
+            };
+        };
+    };
+}
+
+function bossSpinningAttackTotal(){
+    if (bossSAtks.length != 0){
+        for (var i =0; i< bossSAtks.length;i++){
+            
+            if (bossSAtks[i].countWarning > 180){
+                if (bossSAtks[i].generated == false){
+                    bossSAtks[i].generate();
+                    bossSAtks[i].generated = true;
+                }
+                bossSAtks[i].draw();
+                bossSAtks[i].move();
+                bossSAtks[i].upTime();
+            }else{
+                bossSAtks[i].warning(bossSAtks[i].x,bossSAtks[i].y);
+                bossSAtks[i].upTimeWarning();
+            }
+            if (bossSAtks[i].generated && collisionDection(megaManBody,bossSAtks[i].swipe)){
+                megaManBody.healthPoints --;
+            };
+
+            if (bossSAtks[i].count > 90){
+                bossSAtks[i].remove();
+                bossSAtks.splice(i,1);
+            }
+        };
+    }
+}
+
+function bossWallAttackTotal(){
+    if(bossWallSpikeAtks.length != 0){
+        for (var i =0; i< bossWallSpikeAtks.length;i++){
+            
+            if (bossWallSpikeAtks[i].countWarning > 180){
+                if (bossWallSpikeAtks[i].generated == false){
+                    bossWallSpikeAtks[i].generate();
+                    bossWallSpikeAtks[i].generated = true;
+                }
+                bossWallSpikeAtks[i].draw();
+                bossWallSpikeAtks[i].move();
+                bossWallSpikeAtks[i].upTime();
+            }else{
+                bossWallSpikeAtks[i].warning();
+                bossWallSpikeAtks[i].upTimeWarning();
+            }
+                if (bossWallSpikeAtks[i].generated && collisionDection(megaManBody,bossWallSpikeAtks[i].spike)){
+                    megaManBody.healthPoints --;
+                };
+
+            if (bossWallSpikeAtks[i].count > 90){
+                bossWallSpikeAtks[i].remove();
+                bossWallSpikeAtks.splice(i,1);
+            }
+        };
+    }
+}
+
+function megaManBodyShootBullet(){
+    if (bulletShot.length != 0){
+        for (var i =0; i<bulletShot.length;i++){
+            bulletShot[i].draw();
+            bulletShot[i].move();
+            if (collisionDection(bossMegaMan,bulletShot[i].laser)){
+                bulletShot[i].remove();
+                bulletShot.splice(i,1);
+            }
+        };
+    };
+}
+
+////////////////////////////////////////////////////////////////////
+
+function gameLore(loreline){
+    var textX = windowWidth/2-(globalWidth*1.2);
+    push();
+    fill(200,100,100);
+    stroke(0);
+    strokeWeight(4);
+    textSize(globalWidth*0.05);
+    if (loreline < 12){
+        text('At the beginning there were only two factions, the Colors and the Reds.',textX,windowHeight/5);
+    }
+    if (loreline < 11){
+        text('Both lived together in harmony. The people do not even knows of "War","Hunger", and even "Fear".',textX,windowHeight/5 + (globalWidth*0.06));
+    }
+    if (loreline < 10){
+        text('Then, everything changed when "The Cue" attacked.',textX,windowHeight/5 + 2*(globalWidth*0.06));
+    }
+    if (loreline < 9){
+        text('The Cue and its tiger ravaged both nations, bringing everyone down to their knees.',textX,windowHeight/5 + 3*(globalWidth*0.06));
+    }
+    if (loreline < 8){
+        text('Then the Cue, a heartless being, it enslaved the whole populations.',textX,windowHeight/5 + 4*(globalWidth*0.06));
+    }
+    if (loreline < 7){
+        text('The Cue forced the Reds to do hard labour to build what it called "The Snooker Table".',textX,windowHeight/5 + 5*(globalWidth*0.06));
+    }
+    if (loreline < 6){
+        text('For the Colors, they are experimented on due to their Rainbow genetic.',textX,windowHeight/5 + 6*(globalWidth*0.06));
+    }
+    if (loreline < 5){
+        text('With the genetics being used to improve the Cues weapon, we have no chance of fighting it....',textX,windowHeight/5 + 7*(globalWidth*0.06));
+    }
+    if (loreline < 4){
+        text('Until now.',textX,windowHeight/5 + 8*(globalWidth*0.06));
+    }
+    if (loreline < 3){
+        text('we have sucessfully cultivated the Cues power from infiltrating its palace.',textX,windowHeight/5 + 9*(globalWidth*0.06));
+    }
+    if (loreline < 2){
+        text('Now, Sir Knight Redious the 12th, please defeat the Cue and save us all!.',textX,windowHeight/5 + 10*(globalWidth*0.06));
+    }
+    text('""""PRESS SPACEBAR TO CONTINUE""""',textX,windowHeight/5 + 11*(globalWidth*0.06));
+    pop();
+}
+//////////////////////////////////////////////////////////////////
+function healthPointLeft(){
+    push();
+        fill('red');
+        stroke(0);
+        strokeWeight(4);
+        textSize(globalWidth*0.05);
+        text("Sir Knight Redious the 12th's life :"+ megaManBody.healthPoints,50,50);
+        fill('white');
+        text("The Cruel Savage Villian, Cue's life :"+ bossMegaMan.healthPoints,50,50 + (globalWidth*0.06));
+    pop();
+}
+
+function howToPlay(){
+    push();
+        fill('red');
+        stroke(0);
+        strokeWeight(4);
+        textSize(globalWidth*0.05);
+        text("A & D : Left and Right",windowWidth-350,50);
+        text("W : Jump",windowWidth-350,50 + (globalWidth*0.06));
+        text("SpaceBar : Shoot bullets",windowWidth-350,50 + 2*(globalWidth*0.06));
+    pop();
+}
+
+function gameOver(){
+    push();
+        fill('white');
+        stroke(0);
+        strokeWeight(4);
+        textSize(globalWidth*0.2);
+        text('Game Over...',windowWidth/2-(globalWidth/2),windowHeight/2);
+        megaManBody.healthPoints = 0;
+    pop();
+}
+
+function victorious(){
+    push();
+        fill(200,100,100);
+        stroke(0);
+        strokeWeight(4);
+        textSize(globalWidth*0.2);
+        text('VICTORIOUS!!',windowWidth/2-(globalWidth*0.75),windowHeight/2);
+        megaManBody.healthPoints = 1;
+        bossMegaMan.healthPoints = 0;
+    pop();
+}
+//////////////////////////////////////////////////////////////////
+function clearArray(list){
+
+    while (list.length > 0){
+        World.remove(engine.world, list[0]);
+        list.splice(0,1);
+    }
+}
+ -------------------- cuestick.js ------------------------ 
+
+var cueStickDrawn;
+var loop;
+function drawCue(){
+    if (mouseNotPressedForCue == false && gameModeChosen == true && mouseIsPressed===true){
+            var moverX = (mousePressedXCoord - mouseX);
+            var moverY = (mousePressedYCoord - mouseY);
+            var referenceVector = createVector(moverX,moverY);
+            drawPath(referenceVector);
+            drawCueStick(referenceVector.mult(0.15));
+
+            cueStickDrawn = true;
+            toAnimate = (referenceVector.copy()).limit(450);
+            loop = 1;
+    }
+
+    if(mouseNotPressedForCue == false && gameModeChosen == true && cueStickDrawn == true && mouseIsPressed == false){
+        drawCueStick(toAnimate.div(loop));
+        if (loop > 4){
+            cueStickDrawn = false;
+        }else{
+            loop++;
+        }
+    }
+  }
+
+  function drawPath(vectorV){
+    push();
+        var vector = vectorV.limit(450);
+        translate(whiteBall[0].position.x,whiteBall[0].position.y);
+        strokeWeight(2);
+        stroke('white');
+        line(0,0,vector.x,vector.y);
+    pop();
+  }
+
+  function drawCueStick(vectorV){
+    push();
+        var vector;
+        var cueStickTip;
+        var handle;
+
+        vector = createVector(250,250);
+        cueStickTip = createVector(7,7);
+        handle = createVector(170,170);
+
+        vector.setHeading(vectorV.heading());
+        cueStickTip.setHeading(vectorV.heading());
+        handle.setHeading(vectorV.heading());
+        //it work like start->|[vectorV][vector]
+        vector.add(vectorV);
+        cueStickTip.add(vectorV);
+        handle.add(vectorV);
+        // vectorVM = vectorV.mult(0.5);
+        translate(whiteBall[0].position.x,whiteBall[0].position.y);
+
+        stroke('pink')
+        strokeWeight(5);
+        //draw line from the end of the vector.coord to the end of the vectorV.coord
+        line(-(vector.x),-(vector.y),-(vectorV.x),-(vectorV.y));
+        stroke('saddlebrown');
+        line(-(vectorV.x),-(vectorV.y),-(cueStickTip.x),-(cueStickTip.y));
+        stroke('black');
+        line(-(handle.x),-(handle.y),-(vector.x)*0.97,-(vector.y)*0.97);        
+    pop();
+  }
+ -------------------- gamemechanic.js ------------------------ 
+
+var boxesRandom;
+var colouredBallsRandom;
+
+var gameModeChosen;
+
+var modePosition;
+var modeText;
+
+var point;
+
+var ballOut;
+var prevballOut;
+class ballForSlottingMechanic{
+  constructor(ball,colour){
+    this.balltype = ball;
+    this.colourCompare = colour;
+  }
+
+  refresh(){
+    this.balltype = "temp";
+    this.colourCompare=0;
+  }
+
+  clone(){
+    return new ballForSlottingMechanic(this.balltype,this.colourCompare);
+  }
+}
+function setupGameMechanic(){
+    modePosition = [{x:(windowWidth/2)-globalWidth, y:windowHeight/2, w:100, h:100},
+                {x:(windowWidth/2)-50, y:windowHeight/2, w:180, h:100},
+                {x:(windowWidth/2)+globalWidth-100, y:windowHeight/2, w:180, h:100},
+                {x:(windowWidth/2)-50, y:windowHeight*0.75, w:100, h:100}];
+    modeText = ["Default","Red Randomised","All Randomised","Secret"];
+
+    ballOut = new ballForSlottingMechanic("temp",0);
+    prevballOut = new ballForSlottingMechanic("temp",0);
+    ballOut.refresh();
+    prevballOut.refresh();
+}
+
+/////////////////////////////////////////////////////////////
+function ballNearHole(list){
+    Events.on(engine, 'beforeUpdate', function(event) {
+      for (var i =0;i<list.length;i++){
+        // Check if the body is near the center
+        if (isNearHole(list[i])) {
+          // Remove the body from the world
+          ballOut.balltype = list[i].typeOfBody;
+          ballOut.colourCompare = list[i].colour;
+          World.remove(engine.world, list[i]);
+          list.splice(i,1);
+        }
+      }
+    });
+  }
+  
+  function isNearHole(body) {
+    for (var i=0;i<6;i++){
+      const holeX = holes[i][0];
+      const holeY = holes[i][1];
+    
+      // Set a threshold distance for considering it "near"
+      const threshold = (globalWidth/36)*1.5/2; // Adjust this value as needed
+    
+      // Calculate the distance between the body's position and the canvas center
+      const distance = Matter.Vector.magnitude(Matter.Vector.sub(body.position, { x: holeX, y: holeY }));
+      if (distance<threshold){
+        return true;
+      }
+    }
+    return false;
+  }
+  /////////////////////////////////////////////////////////////
+
+  function gameModeStartText(){
+    push();
+        fill(255);
+        stroke(0);
+        strokeWeight(4);
+        textSize(globalWidth*0.05);
+        text('Which game mode do you want to start with?',windowWidth/2-(globalWidth/2),windowHeight/5);
+    pop();
+  }
+
+  function gameModeOption(pos,textV){
+    for (var i =0;i<pos.length;i++){
+        drawGameMode(pos[i].x,pos[i].y,pos[i].w,pos[i].h,textV[i]);
+    }
+  }
+
+  function drawGameMode(x,y,w,h,textstr){
+    push();
+        stroke(200);
+        strokeWeight(3);
+        rect(x,y,w,h);
+        textSize(14);
+        text(textstr,x+(w/5),y+(h/2));
+    pop();
+  }
+
+  function userSelectedGameMode(mX,mY,x,y,w,h){
+    if ((mX>x) && (mX<(x+w)) && (mY > y) && (mY < (y+h))){
+        return true;
+    }
+    return false;
+  }
+
+  function isRedBallsRando (mode){
+    if (mode ==0){
+        return false;
+    }
+    else{
+        return true;
+    }
+  }
+
+  function isColouredBallsRando (mode){
+    if (mode == 2){
+        return true;
+    }
+    else{
+        return false;
+    }
+  }
+
+  function masterFunctionsetupGameMode(){
+    for (var i=0;i<modePosition.length;i++){
+      if (userSelectedGameMode(mouseX,mouseY,modePosition[i].x,modePosition[i].y,modePosition[i].w,modePosition[i].h)){
+        if (i == 3){
+          setupMegaManAll();
+          megaManState = true;
+          gameModeChosen = true;
+          break;
+        }else{  
+          song.play();
+
+          setupBorder();
+
+          setupTable();
+
+          boxesRandom = isRedBallsRando(i);
+          colouredBallsRandom = isColouredBallsRando(i);
+          gameModeChosen = true;
+          setupTower(boxesRandom,colouredBallsRandom);
+          break;
+        }
+      }
+    }
+  }
+  ///////////////////////////////////////////////////////////////////////
+  function collisionDection(bodyA,bodyB){
+    if (Collision.collides(bodyA,bodyB) != null){
+        if (Collision.collides(bodyA,bodyB).collided != null){
+            print(bodyA.typeOfBody+"-"+bodyB.typeOfBody);
+            return true;
+        }
+    }
+  }
+
+  function iterateForCollision(bodyGroupA,bodyGroupB){
+    for(var i = 0;i<bodyGroupA.length;i++){
+        for(var o=0;o<bodyGroupB.length;o++){
+            collisionDection(bodyGroupA[i],bodyGroupB[o]);
+        }
+    }
+  }
+////////////////////////////////////////////////////////////////////////////
+function slottedBall(typeV){
+  if (typeV.balltype != "temp"){
+    if(typeV.balltype == 'cue'){
+      mouseNotPressedForCue = true;
+      prevballOut = typeV.clone();
+    }
+    if(typeV.balltype == 'red'){
+      prevballOut = typeV.clone();
+      typeV.refresh();
+    }
+    if(typeV.balltype == 'colour'){
+      if (prevballOut.balltype == typeV.balltype){
+        alert("You made a mistake of slotting two consecutive coloured balls");
+        resetColourBall(typeV);
+      } else{
+        resetColourBall(typeV);
+      }
+      prevballOut = typeV.clone();
+      typeV.refresh();
+    }
+  }
+}
+
+function resetColourBall(typeV){
+  var check = typeV.colourCompare;
+  for (var i = 0; i<colouredBallsDefault.length;i++){
+    if (check == colouredBallsDefault[i][2]){
+      var startX = colouredBallsDefault[i][0];
+      var startY = colouredBallsDefault[i][1];
+      var colorOfBall = colouredBallsDefault[i][2];
+      generateBall(startX,startY,size,colouredBalls,colorOfBall,'colour');
+      break; 
+    }
+  } 
+}
+
+
+ -------------------- sketch.js ------------------------ 
+
+//-------------------------------------------COMMENTARY---------------------------word count : 506-----------------
+// Before the cue ball was placed and registered onto the table with Matter.js, it was drawn with “ellipse()”. 
+// This will show the user where the cue ball will be placed. Additionally, the user won’t accidentally move 
+// the other balls when they are moving their cursor around to find a suitable spot to place the cue ball.
+
+// To improve the gameplay experience, I’ve made it so that the user can move the cue ball by dragging their 
+// cursor at any point on the table. With keys, the action is too imprecise. This issue was noticed when I was 
+// trying to hit the blue ball across the table. With the old method of moving the cue ball requires the user’s 
+// cursor to be on it and drag their mouse in the opposite direction, I am unable to shoot the cue ball with 
+// sufficient strength if my cursor is dragged outside of the browser. Hence, by finding the vector of where the 
+// user drags their mouse and applying it onto the cue ball, the user’s gameplay is no longer hindered by the cue 
+// ball’s position.
+
+
+// There is an array that contains the coordinates of the game mode’s box in the main menu (modePosition). 
+// “masterFunctionsetupGameMode()” will iterate through the array and record which gamemode the user selects. 
+// The chosen gamemode's index will be the inputs of “isRedBallRando(i)” and “isColouredBallsRando(i)” to 
+// gain outputs that will influence the balls' position. These outputs will be used in “setupTower()”. 
+// To randomise the balls’ location, I simply use “ballPosRandomiser()” which returns an object with two 
+// values that represent the X and Y coordinate that is randomised within the range of the table.
+
+// I decided to constrain the cue ball according to the rules. At the start, “setupWhiteBall()” in sketch.js, 
+// will constrain the cue ball within the semi-circle starting area. This is done by calculating the counterclockwise 
+// angle between the positive x-axis and the difference of the cursor’s position and the center of the semi-circle. 
+// Afterwards, that angle value is then calculated with the radius of the semi-circle to find the maximum distance 
+// the cue ball can be moved from the center point. With the additional use of “constrain()” and setting the limiting 
+// range toward the left side of the table, the cue ball’s position is constrained to only the starting area initially. 
+// However, if the cue ball is potted or somehow goes off screen, the cue ball can be placed anywhere on the table.
+
+// I designed an extension that is related to snooker by its "loading screen lore". I had the idea of wanting to 
+// create something funny, outrageous, and to an extent "not seen in snooker gaming before". Therefore, why not 
+// create something with a gameplay that's so different from snooker with the "personification of snooker” twist 
+// on it. Hence, I made an extension that introduces the manic shooter gameplay with the general story of the 
+// protagonist (a red ball) fighting to overthrow the evil antagonist (the cue ball). This can be accessed by 
+// potting all red balls or through the main menu.
+//-------------------------------------------COMMENTARY----------------------------------------------------------
+
+
+var Engine = Matter.Engine;//update simulated world, mane objects
+var Render = Matter.Render;//visualises output of engine as HTML canvas element
+var Runner = Matter.Runner;//continuously updates engine
+var World = Matter.World;
+var Bodies = Matter.Bodies;//simulate physical objects
+var Body = Matter.Body;
+var Constraint = Matter.Constraint;//method for creating and manupilating constraints (fixed distance btw bodies/position)
+var Mouse = Matter.Mouse;//method for manipulating and creating mouse input
+var MouseConstraint = Matter.MouseConstraint;//allows user to interact with bodies via mouse
+var Composites = Matter.Composites;//methods to create composite bodies (stacks,pyramids)
+var Collision = Matter.Collision;
+
+var Events = Matter.Events//method to listen to events
+
+var engine;
+var globalWidth;
+
+var mouseNotPressedForCue;
+var mousePressedXCoord;
+var mousePressedYCoord;
+
+var canvas;
+function preload(){
+  //source: https://pixabay.com
+  soundFormats("mp3");
+  song = loadSound('assets/sunset-vibes-lo-fichillhop-9503.mp3');
+  song.setVolume(0.09); 
+
+  //source: https://www.pngfind.com/mpng/ihhoTR_free-png-download-jumping-tiger-png-images-background/
+  tigerImg = loadImage("assets/pngfind.com-white-tiger-png-181761.png");
+}
+////////////////////////////////////////////////////////////
+function setup() {
+  canvas = createCanvas(windowWidth, windowHeight);
+  print(canvas);
+  engine = Engine.create();  // create an engine
+  engine.gravity.x = 0;
+  engine.gravity.y = 0;
+  engine.velocityIterations = 4;
+
+  globalWidth = windowWidth*0.39;
+
+  ogsize = globalWidth/36;
+  size = ogsize /2;
+
+  boxesRandom = false;
+  colouredBallsRandom = false;
+
+  mouseNotPressedForCue = true;
+
+  gameModeChosen = false;
+
+  megaManState = false;
+
+  setupGameMechanic();
+
+  mouseNotPressedForCue = true;
+}
+////////////////////////////////////////////////////////////
+function draw() {
+  background(0);
+
+  Engine.update(engine);
+
+  if (gameModeChosen == false){
+    gameModeStartText();
+    gameModeOption(modePosition,modeText);
+  }else if(megaManState == true && gameModeChosen == true){
+    megaManDrawAll();
+  } else {
+    drawTable();
+
+    drawBorder();
+    
+    slottedBall(ballOut);
+  
+    drawHoles();
+  
+    drawTower();
+
+    masterFunctionsetupWhiteBall();
+
+    drawCue();
+
+    if (boxes.length == 0){
+      song.pause();
+      setupMegaManAll();
+      megaManState = true;
+      gameModeChosen = true;
+    };
+  }
+
+
+}
+//////////////////////////////////////////////////////////////
+function mouseClicked(){
+  if (mouseNotPressedForCue == true && gameModeChosen == true){
+    if (ballOut.balltype == "cue"){
+      setupEngineWhiteBall(windowWidth/2 - globalWidth,windowWidth/2 + globalWidth,
+      windowHeight/2 - (globalWidth/2),windowHeight/2 + (globalWidth/2),"out");
+      ballOut.refresh();
+    }else{
+      setupEngineWhiteBall((windowWidth/2)-(globalWidth/2)-((globalWidth/2)*0.3),(windowWidth/2)-(globalWidth/2),
+      (windowHeight/2)-((globalWidth/2)*0.3),(windowHeight/2)+((globalWidth/2)*0.3),"play");
+    }
+    mouseNotPressedForCue = false;
+  }
+
+  if (gameModeChosen == false){
+    masterFunctionsetupGameMode();
+  }
+}
+
+function mousePressed(){
+  mousePressedXCoord = mouseX;
+  mousePressedYCoord = mouseY;
+}
+/////////////////////////////////////////////////////////////
+function drawVertices(vertices) {
+  beginShape();
+  for (var i = 0; i < vertices.length; i++) {
+    vertex(vertices[i].x, vertices[i].y);
+  }
+  endShape(CLOSE);
+}
+////////////////////////////////////////////////////////////
+function isOffScreen(body){
+  var pos = body.position;
+  if (pos.y > windowHeight || pos.y<0 || pos.x<0 || pos.x>windowWidth){
+    return true;
+  }else{
+    return false;
+  }
+}
+////////////////////////////////////////////////////////////
+function removeFromWorld(body) {
+  World.remove(engine.world, body);
+}
+/////////////////////////////////////////////////////////
+function setupMouseInteraction(){
+  var mouse = Mouse.create(canvas.elt);
+  var mouseParams = {
+    mouse: mouse 
+  }
+  mouseConstraint = MouseConstraint.create(engine, mouseParams);
+  mouseConstraint.mouse.pixelRatio = pixelDensity();
+  World.add(engine.world, mouseConstraint);
+}
+
+ -------------------- table.js ------------------------ 
+
+var borderLeft;
+var borderRight;
+var borderTop;
+var borderRight;
+var borders=[];
+
+var holes;
+///////////////////////////////////////////////
+function setupBorder(){
+    generateBorder((windowWidth/2)-globalWidth-(globalWidth*0.04), (windowHeight/2), (globalWidth*0.08), globalWidth,'border');
+    generateBorder((windowWidth/2)+globalWidth+(globalWidth*0.04), (windowHeight/2), (globalWidth*0.08), globalWidth,'border');
+    generateBorder((windowWidth/2), (windowHeight/2)-(globalWidth/2)-(globalWidth*0.04), (globalWidth*2), (globalWidth*0.08),'border');
+    generateBorder((windowWidth/2), (windowHeight/2)+(globalWidth/2)+(globalWidth*0.04), (globalWidth*2), (globalWidth*0.08),'border');
+  }
+
+  function drawBorder(){
+      push();
+      fill('#2B1700');
+      for (var i =0;i<borders.length;i++){
+        drawVertices(borders[i].vertices);
+      }
+      pop();
+  }
+///////////////////////////////////////////////
+function generateBorder(x,y,w,h,typeV){
+    wall = Bodies.rectangle(x,y,w,h, {
+        isStatic: true, friction:0,typeOfBody:typeV
+      });
+    World.add(engine.world, [wall]);
+    borders.push(wall);
+}
+///////////////////////////////////////////////
+function drawHoles(){
+    for (var i = 0; i<6;i++){
+      fill(60);
+      ellipse(holes[i][0],holes[i][1],(globalWidth/36)*1.5)
+    }
+}
+
+function setupTable(){
+    holes = [[windowWidth/2 - (globalWidth*0.99),windowHeight/2 - ((globalWidth/2)*0.98)], //top left hole
+             [windowWidth/2,windowHeight/2 - (globalWidth/2)], //top middle hole
+             [windowWidth/2 + (globalWidth*0.99),windowHeight/2 - ((globalWidth/2)*0.98)],//top right hole
+             [windowWidth/2 - (globalWidth*0.99),windowHeight/2 + ((globalWidth/2)*0.98)],//bottom left hole
+             [windowWidth/2,windowHeight/2 + (globalWidth/2)],//bottom middle hole
+             [windowWidth/2 + (globalWidth*0.99),windowHeight/2 + ((globalWidth/2)*0.98)]]//bototm right hole
+}
+/////////////////////////////////////////////////
+function drawTable(){
+    push();
+    //golden corners
+    fill('#FFD700');
+    for (var i =0;i<2;i++){
+      var topC = windowHeight/2-(globalWidth/2);
+      if (i == 1){
+        topC = topC + globalWidth;
+      }
+      topC = topC 
+      for (var p = 0;p<2;p++){
+        ellipse(windowWidth/2 - (globalWidth*pow(-1,p)),topC,(globalWidth*0.16));
+      }
+    }
+  
+    //green play area
+    fill(0,125,0);
+    rect(windowWidth/2 - globalWidth,windowHeight/2 - (globalWidth/2),(globalWidth*2),globalWidth);
+  
+    //the white marking lines
+    for (var i = 1;i<=2;i++){
+      strokeWeight(2);
+      stroke(255);
+      line((windowWidth/2)-(globalWidth/2),(windowHeight/2),(windowWidth/2)-(globalWidth/2),(windowHeight/2)+((globalWidth/2)*pow(-1,i)));
+    }
+    arc((windowWidth/2)-(globalWidth/2),windowHeight/2,(globalWidth/2)*0.6,(globalWidth/2)*0.6,HALF_PI,PI + HALF_PI);
+    fill(255);
+    ellipse((windowWidth/2)-(globalWidth/2),windowHeight/2,5);
+    pop();
+}
+/////////////////////////////////////////////////////////////
